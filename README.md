@@ -9,7 +9,7 @@ Anki card maintenance script for Mandarin Chinese flashcard decks.
 
 ## Requirements
 
-- [Anki](https://apps.ankiweb.net/) running with the [AnkiConnect](https://ankiweb.net/shared/info/2055492159) add-on
+- [Anki](https://apps.ankiweb.net/) (Flatpak: `net.ankiweb.Anki`) with the [AnkiConnect](https://ankiweb.net/shared/info/2055492159) add-on
 - A Google Cloud account with the Text-to-Speech API enabled
 - Python 3.x
 
@@ -25,6 +25,8 @@ export GOOGLE_APPLICATION_CREDENTIALS="/path/to/your/service-account.json"
 
 ## Usage
 
+Run manually while Anki is already open:
+
 ```bash
 # Run all operations
 python maintain_cards.py
@@ -39,6 +41,28 @@ python maintain_cards.py --audio-only
 # Check field names match your note types
 python maintain_cards.py --list-fields
 ```
+
+### Automated (cron)
+
+`run_maintenance.sh` handles the full lifecycle: starts Anki, syncs from AnkiWeb, runs maintenance, syncs back to AnkiWeb, then closes Anki.
+
+```bash
+chmod +x run_maintenance.sh
+```
+
+Set up a daily cron job:
+
+```bash
+crontab -e
+```
+
+Add a line like this (runs at 9am daily):
+
+```
+0 9 * * * GOOGLE_APPLICATION_CREDENTIALS="/path/to/key.json" /path/to/anki-skills/run_maintenance.sh >> /tmp/anki-maintain.log 2>&1
+```
+
+> **Note:** The cron environment doesn't inherit your shell's variables, so `GOOGLE_APPLICATION_CREDENTIALS` must be set explicitly in the crontab entry.
 
 ## Configuration
 

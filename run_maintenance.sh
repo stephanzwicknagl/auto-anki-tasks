@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Cron runs with a minimal environment — set everything needed explicitly.
+export PATH="/usr/bin:/usr/local/bin:$HOME/.local/bin:$PATH"
+export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcloud/anki-tts.json"
+
+# Wayland/Flatpak session variables (not set in cron)
+export DISPLAY=":0"
+export WAYLAND_DISPLAY="wayland-0"
+export XDG_RUNTIME_DIR="/run/user/1000"
+export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/1000/bus"
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ANKI_CONNECT_URL="http://localhost:8765"
 
