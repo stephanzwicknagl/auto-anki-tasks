@@ -28,7 +28,7 @@ PLECO_NOTE_TYPE = "StephsHanziCard - CharMeaningPronounce"
 SENTENCE_DECK = "SpoonfedChinese Simplified"
 SENTENCE_NOTE_TYPE = "SpoonFedNote"
 
-SENTENCE_PUNCTUATION = set("。！？")
+SENTENCE_PUNCTUATION = set("。！？.")
 
 # Field names — run with --list-fields to verify these match your note types
 EXPRESSION_FIELD = "Simplified"
