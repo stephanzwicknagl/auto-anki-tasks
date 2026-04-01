@@ -3,8 +3,9 @@
 maintain_cards.py — Anki card maintenance script
 
 Operations (run in order):
-  1. Reclassify sentence cards from Pleco vocab deck → sentence deck/type
-  2. Add Google Cloud TTS audio to cards missing audio
+  1. Unsuspend cards tagged "cn-unsuspend-me-pls", then remove the tag
+  2. Reclassify sentence cards from Pleco vocab deck → sentence deck/type
+  3. Add Google Cloud TTS audio to cards missing audio
 """
 
 import argparse
@@ -70,6 +71,47 @@ def list_fields():
         print(f"\n{note_type}:")
         for i, f in enumerate(fields):
             print(f"  [{i}] {f}")
+
+
+UNSUSPEND_TAG = "cn-unsuspend-me-pls"
+
+
+def unsuspend_tagged_cards(dry_run=False):
+    print("\n── Unsuspending tagged cards ──")
+
+    note_ids = anki("findNotes", query=f"tag:{UNSUSPEND_TAG}")
+    if not note_ids:
+        print(f"  No notes tagged '{UNSUSPEND_TAG}'.")
+        return
+
+    notes = anki("notesInfo", notes=note_ids)
+
+    # Collect all card IDs across all tagged notes
+    all_card_ids = [card_id for note in notes for card_id in note["cards"]]
+    if not all_card_ids:
+        print("  No cards found for tagged notes.")
+        return
+
+    suspended_states = anki("areSuspended", cards=all_card_ids)
+    cards_to_unsuspend = [
+        card_id for card_id, is_suspended in zip(all_card_ids, suspended_states)
+        if is_suspended
+    ]
+
+    print(f"  {len(all_card_ids)} cards found — {len(cards_to_unsuspend)} suspended.")
+
+    if dry_run:
+        for card_id in cards_to_unsuspend:
+            print(f"  [DRY RUN] would unsuspend card {card_id}")
+        print(f"  [DRY RUN] would remove tag '{UNSUSPEND_TAG}' from {len(note_ids)} notes")
+        return
+
+    if cards_to_unsuspend:
+        anki("unsuspendCards", cards=cards_to_unsuspend)
+        print(f"  Unsuspended {len(cards_to_unsuspend)} cards.")
+
+    anki("removeTags", notes=note_ids, tags=UNSUSPEND_TAG)
+    print(f"  Removed tag '{UNSUSPEND_TAG}' from {len(note_ids)} notes.")
 
 
 def reclassify_sentences(dry_run=False):
@@ -198,6 +240,7 @@ def main():
     if args.dry_run:
         print("DRY RUN — no changes will be made.\n")
 
+    unsuspend_tagged_cards(dry_run=args.dry_run)
     if not args.audio_only:
         reclassify_sentences(dry_run=args.dry_run)
     if not args.reclassify_only:
