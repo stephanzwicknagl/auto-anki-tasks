@@ -82,7 +82,7 @@ def unsuspend_tagged_cards(dry_run=False):
     note_ids = anki("findNotes", query=f"tag:{UNSUSPEND_TAG}")
     if not note_ids:
         print(f"  No notes tagged '{UNSUSPEND_TAG}'.")
-        return
+        return 0
 
     notes = anki("notesInfo", notes=note_ids)
 
@@ -90,7 +90,7 @@ def unsuspend_tagged_cards(dry_run=False):
     all_card_ids = [card_id for note in notes for card_id in note["cards"]]
     if not all_card_ids:
         print("  No cards found for tagged notes.")
-        return
+        return 0
 
     suspended_states = anki("areSuspended", cards=all_card_ids)
     cards_to_unsuspend = [
@@ -107,11 +107,12 @@ def unsuspend_tagged_cards(dry_run=False):
         return
 
     if cards_to_unsuspend:
-        anki("unsuspendCards", cards=cards_to_unsuspend)
+        anki("unsuspend", cards=cards_to_unsuspend)
         print(f"  Unsuspended {len(cards_to_unsuspend)} cards.")
 
     anki("removeTags", notes=note_ids, tags=UNSUSPEND_TAG)
     print(f"  Removed tag '{UNSUSPEND_TAG}' from {len(note_ids)} notes.")
+    return len(cards_to_unsuspend)
 
 
 def reclassify_sentences(dry_run=False):
@@ -120,7 +121,7 @@ def reclassify_sentences(dry_run=False):
     note_ids = anki("findNotes", query=f'deck:"{PLECO_DECK}" note:"{PLECO_NOTE_TYPE}"')
     if not note_ids:
         print("  No notes found in Pleco deck.")
-        return
+        return 0
 
     notes = anki("notesInfo", notes=note_ids)
     sentences = [n for n in notes if is_sentence(get_field_value(n, EXPRESSION_FIELD))]
@@ -153,6 +154,7 @@ def reclassify_sentences(dry_run=False):
 
     if not dry_run:
         print(f"  Reclassified {reclassified} of {len(sentences)} sentence cards.")
+    return reclassified
 
 
 def add_tts_audio(dry_run=False):
@@ -169,7 +171,7 @@ def add_tts_audio(dry_run=False):
 
     if not note_ids:
         print("  No notes found.")
-        return
+        return 0
 
     notes = anki("notesInfo", notes=list(note_ids))
     missing_audio = [
@@ -217,6 +219,7 @@ def add_tts_audio(dry_run=False):
 
     if not dry_run:
         print(f"  Added audio to {added} notes.")
+    return added
 
 
 # ── Main ───────────────────────────────────────────────────────────────────────
@@ -240,11 +243,15 @@ def main():
     if args.dry_run:
         print("DRY RUN — no changes will be made.\n")
 
-    unsuspend_tagged_cards(dry_run=args.dry_run)
+    unsuspended = unsuspend_tagged_cards(dry_run=args.dry_run) or 0
+    reclassified = 0
+    audio_added = 0
     if not args.audio_only:
-        reclassify_sentences(dry_run=args.dry_run)
+        reclassified = reclassify_sentences(dry_run=args.dry_run) or 0
     if not args.reclassify_only:
-        add_tts_audio(dry_run=args.dry_run)
+        audio_added = add_tts_audio(dry_run=args.dry_run) or 0
+
+    print(f"\nSUMMARY: unsuspended={unsuspended} reclassified={reclassified} audio_added={audio_added}")
 
 
 

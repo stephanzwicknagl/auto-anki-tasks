@@ -40,9 +40,19 @@ curl -s -X POST "$ANKI_CONNECT_URL" \
     -H "Content-Type: application/json" \
     -d '{"action":"sync","version":6}' > /dev/null
 
-# Run the maintenance script
-"$SCRIPT_DIR/.venv/bin/python" "$SCRIPT_DIR/maintain_cards.py"
-EXIT_CODE=$?
+# Run the maintenance script, capturing output for stats while still displaying it
+STATS_FILE=$(mktemp)
+trap 'rm -f "$STATS_FILE"' EXIT
+
+set +e
+"$SCRIPT_DIR/.venv/bin/python" "$SCRIPT_DIR/maintain_cards.py" | tee "$STATS_FILE"
+EXIT_CODE=${PIPESTATUS[0]}
+set -e
+
+# Extract counts from the SUMMARY line printed by maintain_cards.py
+UNSUSPENDED=$(grep -oP 'unsuspended=\K[0-9]+' "$STATS_FILE" || echo "?")
+RECLASSIFIED=$(grep -oP 'reclassified=\K[0-9]+' "$STATS_FILE" || echo "?")
+AUDIO_ADDED=$(grep -oP 'audio_added=\K[0-9]+' "$STATS_FILE" || echo "?")
 
 # Sync to AnkiWeb
 echo "Syncing to AnkiWeb..."
@@ -58,4 +68,10 @@ curl -s -X POST "$ANKI_CONNECT_URL" \
 sleep 3
 flatpak kill "net.ankiweb.Anki" 2>/dev/null || true
 
+MATRIX_URL=$(cat "$HOME/.config/shoutrrr-matrix.url")
+MSG="Anki maintenance at $(date)
+  Cards unsuspended: $UNSUSPENDED
+  Sentences reclassified: $RECLASSIFIED
+  Audio added: $AUDIO_ADDED"
+/usr/local/bin/shoutrrr send $MATRIX_URL --message "$MSG"
 exit $EXIT_CODE
