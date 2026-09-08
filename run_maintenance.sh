@@ -68,10 +68,12 @@ curl -s -X POST "$ANKI_CONNECT_URL" \
 sleep 3
 flatpak kill "net.ankiweb.Anki" 2>/dev/null || true
 
-MATRIX_URL=$(cat "$HOME/.config/shoutrrr-matrix.url")
-MSG="Anki maintenance at $(date)
-  Cards unsuspended: $UNSUSPENDED
-  Sentences reclassified: $RECLASSIFIED
-  Audio added: $AUDIO_ADDED"
-/usr/local/bin/shoutrrr send $MATRIX_URL --message "$MSG"
+if (( UNSUSPENDED > 0  || RECLASSIFIED > 0 || AUDIO_ADDED > 0)); then
+  MATRIX_URL=$(cat "$HOME/.config/shoutrrr-matrix.url")
+  MSG="Anki maintenance at $(date)
+    Cards unsuspended: $UNSUSPENDED
+    Sentences reclassified: $RECLASSIFIED
+    Audio added: $AUDIO_ADDED"
+  /usr/local/bin/shoutrrr send $MATRIX_URL --message "$MSG"
+fi
 exit $EXIT_CODE
